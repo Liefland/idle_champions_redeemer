@@ -1,0 +1,70 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "release/v*" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        run: cargo build
+
+  examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        run: cargo build --examples
+
+  no_features:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        run: cargo build --no-default-features
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Lint
+        uses: giraffate/clippy-action@v1
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        run: cargo build --verbose
+      - name: Run tests
+        run: cargo test --verbose
+      - name: Cargo check
+        run: cargo check
+
+# To start publishing;
+# 1. make sure you have set up protected branches
+# 2. make sure you have set up secrets
+# 3. a mechanism that ensures you bump the version when you release a tag is beneficial
+# 4. uncomment the following lines
+#  publish:
+#    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release/v')
+#    needs: [build, examples, no_features, test, lint]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v3
+#      - name: Authenticate
+#        run: cargo login ${{ secrets.CARGO_PUBLISH_TOKEN }}
+#      - name: Publish
+#        run: cargo publish
