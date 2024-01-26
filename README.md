@@ -1,28 +1,33 @@
-# TODOPROJNAME
+# idle_champions_redeemer
 
-[![Build Status](https://github.com/zarthus/TODOPROJNAME/actions/workflows/rust.yml/badge.svg)](https://github.com/zarthus/TODOPROJNAME/actions)
-[![Docs.rs](https://docs.rs/TODOPROJNAME/badge.svg)](https://docs.rs/TODOPROJNAME/latest/)
+[![Build Status](https://github.com/zarthus/idle_champions_redeemer/actions/workflows/rust.yml/badge.svg)](https://github.com/zarthus/idle_champions_redeemer/actions)
+[![Docs.rs](https://docs.rs/idle_champions_redeemer/badge.svg)](https://docs.rs/idle_champions_redeemer/latest/)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](README#license)
 
-TODO
+CLI tool to redeem Idle Champions of the Forgotten Realms codes.
+
+Set up cursor positions in the config file, and run the tool with a list of codes to redeem.
 
 ## Installation
 
-Add as a dependency: 
-- `cargo add TODOPROJNAME`
-
 Install as software:
-- `cargo install TODOPROJNAME`
+- `cargo install idle_champions_redeemer`
 
-## Examples
+You can the run it like so: 
+- `idle_champions_redeemer --setup` to generate a config file.
+- `idle_champions_redeemer --codes="NEWA-CCOU-NTNE-WME!"` to see the available options.
 
-```rust
-fn main() { // TODO
-    println!("Hello, world!");
-}
-```
+## Uninstalling
 
-For more examples, see the [examples](examples) directory.
+- (optional) Remove the config file, you can use `--clean` in the binary to do this for you.
+- Remove the binary from the system
+
+## Recommended reading
+
+We use Enigo to simulate mouse clicks and keyboard presses, it has some dependency and permission notes:
+
+- https://github.com/enigo-rs/enigo/blob/main/Permissions.md
+- https://github.com/enigo-rs/enigo#runtime-dependencies
 
 ## Contributing
 

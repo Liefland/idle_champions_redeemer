@@ -1,23 +1,22 @@
 [package]
-name = "TODOPROJNAME"
-description = "TODO"
+name = "idle_champions_redeemer"
+description = "Redeem codes for Idle Champions of the Forgotten Realms."
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 authors = [
     "Zarthus <zarthus@liefland.net>",
 ]
-repository = "https://github.com/zarthus/TODOPROJNAME"
-homepage = "https://github.com/zarthus/TODOPROJNAME"
+repository = "https://github.com/zarthus/idle_champions_redeemer"
+homepage = "https://github.com/zarthus/idle_champions_redeemer"
 categories = []
 keywords = []
 readme = "README.md"
 publish = false
 
 [dependencies]
-
-[features]
-default = [
-]
-
-[badges]
+clap = { version = "4.4.18", features = ["derive"] }
+directories = "5.0.1"
+enigo = "0.1.3"
+serde = { version = "1.0.195", features = ["derive"] }
+toml = "0.8.8"
