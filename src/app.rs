@@ -76,11 +76,7 @@ async fn run_remote(instructions: RemoteInstructions) -> Result<(), &'static str
                 .collect::<Vec<String>>()
         })?;
 
-    verbose!(
-        instructions.settings,
-        "Retrieved codes: {}",
-        codes.join(", ")
-    );
+    println!("Retrieved {} codes: {}", codes.len(), codes.join(", "));
 
     let mut interactor = Interactor::new(
         instructions.settings.instructions,
