@@ -8,6 +8,7 @@ mod clipboard;
 mod config;
 mod interaction;
 mod macros;
+mod progress;
 mod remote;
 mod setup;
 

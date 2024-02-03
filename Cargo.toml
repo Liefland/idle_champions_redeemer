@@ -23,9 +23,11 @@ toml = "0.8.9"
 licc = { version = "0.2.0", optional = true }
 tokio = { version = "1.36.0", optional = true, features = ["macros", "time"] }
 arboard = { version = "3.3.0", default-features = false }
+indicatif = "0.17.7"
 
 [features]
-default = ["remote"]
+default = ["remote", "progress"]
 remote = ["licc", "tokio"] # permit remote code redemption
 wayland = ["arboard/wayland-data-control"] # allows for improved clipboard support on wayland
 image = ["arboard/image-data"] # support copy/paste of images and restoring your clipboard if it has an image.
+progress = [] # displays a progress bar while redeeming

@@ -1,6 +1,6 @@
 use crate::clipboard::ClipboardIsolation;
 use crate::config::Instructions;
-use crate::{err, verbose};
+use crate::{err, progress, verbose};
 use enigo::{KeyboardControllable, MouseControllable};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -74,13 +74,20 @@ impl Interactor {
         // Store mouse position
         let (mouse_x, mouse_y) = self.enigo.mouse_location();
 
+        let len = codes.len();
+        let (progress_sender, _thread_handle) = progress::bar_create(len);
         for code in codes {
+            progress_sender.send(format!("CODE {}", code)).ok();
+
             if let Err(err) = self.redeem(&code) {
-                err!("Failed to redeem code '{}': {}", code, err);
-                failed_codes.push(code);
+                err!("Failed to redeem code '{}': {}", &code, err);
+                failed_codes.push(code.clone());
             };
+
             sleep_millis!(2600, self.slow); // we need to wait for the chest animation to finish on success
+            progress_sender.send("INC".to_string()).ok();
         }
+        progress_sender.send("FINISH".to_string()).ok();
 
         if !failed_codes.is_empty() {
             return Err(failed_codes);
@@ -96,7 +103,8 @@ impl Interactor {
         let normalized_code = self.normalize(code)?;
         let instructions = self.instructions;
 
-        println!("Redeeming code '{}'", code);
+        #[cfg(not(feature = "progress"))]
+        println!("Redeeming code '{}'", &normalized_code);
 
         // Isolate the clipboard to prevent interference, it implements Drop and will restore the clipboard when it goes out of scope
         let _cb_isolation = ClipboardIsolation::isolate(normalized_code, self.verbose)?;
@@ -160,7 +168,7 @@ impl Interactor {
         self.enigo.key_click(key_press);
     }
 
-    pub fn paste_clipboard(&mut self) {
+    fn paste_clipboard(&mut self) {
         verbose!(self, "==> Pasting clipboard");
 
         verbose!(self, "==> Sending KEY '{:?}'", enigo::Key::Control);
