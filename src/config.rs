@@ -20,11 +20,11 @@ pub struct ConfigFile {
     pub slow: bool,
 }
 
+#[allow(dead_code)] // Can be dead code if the feature is not enabled
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Remote {
-    pub url: String,
+    pub url: Option<String>,
     pub max_retries: u8,
-    pub timeout_ms: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]

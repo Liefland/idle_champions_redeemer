@@ -1,4 +1,4 @@
-use crate::config::Strategy::Local;
+use crate::config::Strategy::Remote;
 use crate::config::{dir, file, write, ConfigFile, Instructions};
 use crate::err;
 use crate::interaction::{await_enter, Coordinates, Interactor};
@@ -46,7 +46,7 @@ pub fn setup() -> Result<(), &'static str> {
     println!("{}", instructions);
 
     write(&ConfigFile {
-        default_strategy: Local,
+        default_strategy: Remote,
         instructions,
         remote: None,
         slow: false,

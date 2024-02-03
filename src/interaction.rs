@@ -65,18 +65,19 @@ impl Interactor {
     }
 
     pub fn redeem_many(&mut self, codes: Vec<String>) -> Result<(), Vec<String>> {
+        if codes.is_empty() {
+            return Ok(());
+        }
+
         let mut failed_codes: Vec<String> = vec![];
 
         // Store mouse position
         let (mouse_x, mouse_y) = self.enigo.mouse_location();
 
         for code in codes {
-            match self.redeem(&code) {
-                Ok(_) => {}
-                Err(err) => {
-                    err!("Failed to redeem code '{}': {}", code, err);
-                    failed_codes.push(code);
-                }
+            if let Err(err) = self.redeem(&code) {
+                err!("Failed to redeem code '{}': {}", code, err);
+                failed_codes.push(code);
             };
             sleep_millis!(2600, self.slow); // we need to wait for the chest animation to finish on success
         }

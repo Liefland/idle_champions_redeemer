@@ -8,6 +8,7 @@ mod clipboard;
 mod config;
 mod interaction;
 mod macros;
+mod remote;
 mod setup;
 
 fn main() -> Result<(), &'static str> {
@@ -125,7 +126,6 @@ enum ExitCode {
     SetupFailed = 3,
     ConfigFailed = 4,
     LocalRunFailed = 5,
-    RemoteRunFailed = 6,
     RunFailed = 7,
 }
 

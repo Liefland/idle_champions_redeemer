@@ -1,18 +1,17 @@
 use crate::cli::Args;
 use crate::config::{ConfigFile, Instructions};
 use crate::interaction::Interactor;
-use crate::{app, config, err, verbose, ExitCode};
+use crate::{config, err, verbose, ExitCode};
 
 pub(crate) enum RunInstructions {
     Local(LocalInstructions),
     Remote(RemoteInstructions),
 }
 
-#[allow(dead_code)]
+#[allow(dead_code)] // Can be dead code if the feature is not enabled
 pub(crate) struct RemoteInstructions {
-    pub url: String,
+    pub url: Option<String>,
     pub max_retries: u8,
-    pub timeout_ms: u32,
 
     pub settings: Settings,
 }
@@ -51,17 +50,51 @@ fn run_local(instructions: LocalInstructions) -> Result<(), &'static str> {
     );
 
     match interactor.redeem_many(instructions.codes) {
-        Ok(_) => {}
+        Ok(_) => Ok(()),
         Err(failed_codes) => {
             err!("Failed to redeem codes: {:?}", failed_codes);
+            Err("Failed to redeem at least 1 code")
         }
-    };
-
-    Ok(())
+    }
 }
 
+#[cfg(not(feature = "remote"))]
 fn run_remote(_instructions: RemoteInstructions) -> Result<(), &'static str> {
-    Err("Remote not implemented yet")
+    Err("Remote feature not enabled")
+}
+
+#[cfg(feature = "remote")]
+#[tokio::main(flavor = "current_thread")]
+async fn run_remote(instructions: RemoteInstructions) -> Result<(), &'static str> {
+    let client = licc::client::CodesClient::new_full(None, instructions.url, None);
+    let codes: Vec<String> = crate::remote::get_codes(client, instructions.max_retries)
+        .await
+        .map(|codes| {
+            codes
+                .into_iter()
+                .map(|code| code.code)
+                .collect::<Vec<String>>()
+        })?;
+
+    verbose!(
+        instructions.settings,
+        "Retrieved codes: {}",
+        codes.join(", ")
+    );
+
+    let mut interactor = Interactor::new(
+        instructions.settings.instructions,
+        instructions.settings.slow,
+        instructions.settings.verbose,
+    );
+
+    match interactor.redeem_many(codes) {
+        Ok(_) => Ok(()),
+        Err(failed_codes) => {
+            err!("Failed to redeem codes: {:?}", failed_codes);
+            Err("Failed to redeem at least 1 code")
+        }
+    }
 }
 
 impl Settings {
@@ -77,7 +110,7 @@ impl Settings {
 impl RunInstructions {
     pub fn create(matches: Args, config: ConfigFile) -> RunInstructions {
         let require_local_codes = config.remote.is_none()
-            && (matches.prefer_remote || config.default_strategy == config::Strategy::Remote);
+            && (matches.prefer_remote || config.default_strategy != config::Strategy::Remote);
         let is_codes_empty = matches.codes.is_empty();
 
         let settings = Settings::from(&matches, &config);
@@ -85,8 +118,8 @@ impl RunInstructions {
         if !is_codes_empty || require_local_codes {
             if is_codes_empty {
                 err!(
-                "No codes provided, pass --codes or permit remote retrieval of codes in the setup"
-            );
+                    "No codes provided, pass --codes or permit remote retrieval of codes in the setup"
+                );
                 std::process::exit(ExitCode::LocalRunFailed.into());
             }
 
@@ -95,21 +128,17 @@ impl RunInstructions {
                 settings,
             })
         } else {
-            let (url, max_retries, timeout_ms) = match config.remote {
+            let (url, max_retries) = match config.remote {
                 None => match matches.url {
-                    None => {
-                        err!("No remote configuration provided, pass an --url or run the setup");
-                        std::process::exit(ExitCode::RemoteRunFailed.into());
-                    }
-                    Some(url) => (url, 1, 4000),
+                    None => (None, 1),
+                    Some(url) => (Some(url), 1),
                 },
-                Some(data) => (data.url.clone(), data.max_retries, data.timeout_ms),
+                Some(data) => (data.url.clone(), data.max_retries),
             };
 
-            RunInstructions::Remote(app::RemoteInstructions {
+            RunInstructions::Remote(RemoteInstructions {
                 url,
                 max_retries,
-                timeout_ms,
                 settings,
             })
         }
