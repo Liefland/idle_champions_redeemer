@@ -1,7 +1,6 @@
 # icredeem
 
 [![Build Status](https://github.com/liefland/idle_champions_redeemer/actions/workflows/rust.yml/badge.svg)](https://github.com/liefland/idle_champions_redeemer/actions)
-[![Docs.rs](https://docs.rs/icredeem/badge.svg)](https://docs.rs/icredeem/latest/)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](README#license)
 
 CLI tool to redeem Idle Champions of the Forgotten Realms codes.
