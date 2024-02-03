@@ -1,3 +1,4 @@
+use crate::clipboard::ClipboardIsolation;
 use crate::config::Instructions;
 use crate::{err, verbose};
 use enigo::{KeyboardControllable, MouseControllable};
@@ -14,20 +15,52 @@ pub struct Coordinates {
 pub struct Interactor {
     enigo: enigo::Enigo,
     instructions: Instructions,
+    slow: bool,
     verbose: bool,
-    sleep_ms: u64,
 }
 
 const CHEST_CODE_LENGTH_SHORT: usize = 12;
 const CHEST_CODE_LENGTH_LONG: usize = 16;
 
+macro_rules! sleep_millis {
+    ($milliseconds:expr, $slow:expr) => {
+        if $slow {
+            std::thread::sleep(std::time::Duration::from_millis(($milliseconds + 500)));
+        } else {
+            std::thread::sleep(std::time::Duration::from_millis($milliseconds));
+        }
+    };
+}
+
+macro_rules! action {
+    ($self:ident, $action:expr, $fncall:stmt, $sleep:expr) => {
+        verbose!($self, $action);
+
+        $fncall
+
+        sleep_millis!($sleep, $self.slow);
+    };
+}
+
+macro_rules! key {
+    ($self:ident, $action:expr, $key:expr, $sleep:expr) => {
+        action!($self, $action, $self.send_keypress($key), $sleep);
+    };
+}
+
+macro_rules! click {
+    ($self:ident, $action:expr, $coords:expr, $sleep:expr) => {
+        action!($self, $action, $self.send_click($coords), $sleep);
+    };
+}
+
 impl Interactor {
-    pub fn new(instructions: Instructions, sleep_ms: u64, verbose: bool) -> Interactor {
+    pub fn new(instructions: Instructions, slow: bool, verbose: bool) -> Interactor {
         Interactor {
             enigo: enigo::Enigo::new(),
             instructions,
             verbose,
-            sleep_ms,
+            slow,
         }
     }
 
@@ -45,7 +78,7 @@ impl Interactor {
                     failed_codes.push(code);
                 }
             };
-            std::thread::sleep(std::time::Duration::from_millis(self.sleep_ms));
+            sleep_millis!(2600, self.slow); // we need to wait for the chest animation to finish on success
         }
 
         if !failed_codes.is_empty() {
@@ -60,49 +93,33 @@ impl Interactor {
 
     pub fn redeem(&mut self, code: &str) -> Result<(), String> {
         let normalized_code = self.normalize(code)?;
-
-        let (short_duration, long_duration, duration) = (
-            std::time::Duration::from_millis(self.sleep_ms) / 3,
-            std::time::Duration::from_millis(self.sleep_ms) * 2,
-            std::time::Duration::from_millis(self.sleep_ms),
-        );
         let instructions = self.instructions;
 
         println!("Redeeming code '{}'", code);
 
-        // Press the "Unlock a Locked Chest" button
-        self.send_click(&instructions.unlock_chest);
-        std::thread::sleep(long_duration); // Longer wait: Unlock chest animation
+        // Isolate the clipboard to prevent interference, it implements Drop and will restore the clipboard when it goes out of scope
+        let _cb_isolation = ClipboardIsolation::isolate(normalized_code, self.verbose)?;
 
-        if code.len() == CHEST_CODE_LENGTH_SHORT {
-            // Switch Character Length
-            self.send_click(&instructions.character_switch);
-            std::thread::sleep(duration);
-        }
+        click!(
+            self,
+            "Clicking 'Unlock a Locked Chest'",
+            &instructions.unlock_chest,
+            2500
+        );
+        action!(self, "Pasting the code", self.paste_clipboard(), 1500);
 
-        // Submit the Code
-        self.send_code(&normalized_code);
-        std::thread::sleep(short_duration);
-
-        // Redeem the code
-        self.send_keypress(enigo::Key::Return);
-        std::thread::sleep(long_duration); // Longer wait: Chest unlock animation
+        // this animation takes forever if successful
+        // which is the whole reason i wrote this software in the first place
+        key!(self, "Redeeming the code", enigo::Key::Return, 5000);
 
         // Success case: We got a card to flip
-        // Flip the "card"
-        self.send_keypress(enigo::Key::Space);
-        std::thread::sleep(duration);
-        // Acknowledge you got the "card"
-        self.send_keypress(enigo::Key::Space);
-        // Failure case: We got an error (already redeemed, invalid code, etc)
-        std::thread::sleep(std::time::Duration::from_millis(100));
-        // Close the error
-        self.send_keypress(enigo::Key::Return);
-        std::thread::sleep(duration);
-
-        // Close the chest UI
-        self.send_keypress(enigo::Key::Escape);
-        std::thread::sleep(duration);
+        verbose!(self, "Checking for 'card', two branches possible [A], [B]");
+        // Delays here are a bit finnicky.
+        // A1's delay is propogated in B1, as we can handle both branches in the same time frame
+        key!(self, "[A] Flip card", enigo::Key::Space, 10); // A1
+        key!(self, "[B] Dismiss error", enigo::Key::Escape, 1000); // B1
+        key!(self, "[B] Closing the chest UI", enigo::Key::Escape, 3000); // A2
+        key!(self, "[A] Acknowledging card", enigo::Key::Space, 500); // B2
 
         Ok(())
     }
@@ -115,7 +132,7 @@ impl Interactor {
         Ok(normalized)
     }
 
-    fn validate<'a>(&self, code: &str) -> Result<(), String> {
+    fn validate(&self, code: &str) -> Result<(), String> {
         if code.len() != CHEST_CODE_LENGTH_SHORT && code.len() != CHEST_CODE_LENGTH_LONG {
             return Err(format!(
                 "Code must be {} or {} characters long",
@@ -127,24 +144,30 @@ impl Interactor {
     }
 
     pub fn send_click(&mut self, coords: &Coordinates) {
-        verbose!(self, "Sending CLICK at X:{}, Y:{}", coords.x, coords.y);
+        verbose!(self, "==> Sending CLICK at X:{}, Y:{}", coords.x, coords.y);
 
         self.enigo.mouse_move_to(coords.x, coords.y);
 
-        std::thread::sleep(std::time::Duration::from_millis(10)); // Probably not needed
+        sleep_millis!(10, false); // Probably not needed
 
         self.enigo.mouse_click(enigo::MouseButton::Left);
     }
 
     fn send_keypress(&mut self, key_press: enigo::Key) {
-        verbose!(self, "Sending KEY '{:?}'", key_press);
+        verbose!(self, "==> Sending KEY '{:?}'", key_press);
 
         self.enigo.key_click(key_press);
     }
 
-    fn send_code(&mut self, code: &str) {
-        verbose!(self, "Sending CODE '{}'", code);
-        self.enigo.key_sequence(code);
+    pub fn paste_clipboard(&mut self) {
+        verbose!(self, "==> Pasting clipboard");
+
+        verbose!(self, "==> Sending KEY '{:?}'", enigo::Key::Control);
+        self.enigo.key_down(enigo::Key::Control);
+        sleep_millis!(25, self.slow);
+        self.send_keypress(enigo::Key::Layout('v'));
+        sleep_millis!(25, self.slow);
+        self.enigo.key_up(enigo::Key::Control);
     }
 }
 

@@ -8,6 +8,7 @@ pub(crate) enum RunInstructions {
     Remote(RemoteInstructions),
 }
 
+#[allow(dead_code)]
 pub(crate) struct RemoteInstructions {
     pub url: String,
     pub max_retries: u8,
@@ -23,7 +24,7 @@ pub(crate) struct LocalInstructions {
 }
 
 pub(crate) struct Settings {
-    pub sleep_ms: u64,
+    pub slow: bool,
     pub verbose: bool,
 
     pub instructions: Instructions,
@@ -45,7 +46,7 @@ pub fn run(instructions: RunInstructions) -> Result<(), &'static str> {
 fn run_local(instructions: LocalInstructions) -> Result<(), &'static str> {
     let mut interactor = Interactor::new(
         instructions.settings.instructions,
-        instructions.settings.sleep_ms,
+        instructions.settings.slow,
         instructions.settings.verbose,
     );
 
@@ -66,7 +67,7 @@ fn run_remote(_instructions: RemoteInstructions) -> Result<(), &'static str> {
 impl Settings {
     pub fn from(matches: &Args, config: &ConfigFile) -> Settings {
         Settings {
-            sleep_ms: matches.sleep.unwrap_or(config.sleep_ms),
+            slow: matches.slow,
             verbose: matches.verbose,
             instructions: config.instructions,
         }

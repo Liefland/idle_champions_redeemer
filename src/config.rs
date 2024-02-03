@@ -17,7 +17,7 @@ pub struct ConfigFile {
     pub instructions: Instructions,
     pub remote: Option<Remote>,
 
-    pub sleep_ms: u64,
+    pub slow: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,7 +30,6 @@ pub struct Remote {
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct Instructions {
     pub unlock_chest: Coordinates,
-    pub character_switch: Coordinates,
 }
 
 const CONFIG_FILE_NAME: &str = "config.toml";

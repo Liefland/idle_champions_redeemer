@@ -1,10 +1,10 @@
-#![allow(dead_code, unused_variables)]
-
 use crate::app::{run, RunInstructions};
+use crate::cli::ConfigCommand;
 use crate::interaction::await_enter;
 use crate::setup::{is_setup, setup};
 mod app;
 mod cli;
+mod clipboard;
 mod config;
 mod interaction;
 mod macros;
@@ -19,8 +19,21 @@ fn main() -> Result<(), &'static str> {
         }
     };
 
-    if matches.clean {
-        std::process::exit(do_clean(matches).into());
+    if let Some(cfg) = matches.clone().config {
+        match cfg {
+            ConfigCommand::Dir => {
+                println!("Your configuration lives in:\n{}", config::dir().display());
+                std::process::exit(ExitCode::Success.into());
+            }
+            ConfigCommand::Clean => {
+                do_clean(matches);
+                std::process::exit(ExitCode::Success.into());
+            }
+            ConfigCommand::Setup => {
+                check_setup(&matches);
+                std::process::exit(ExitCode::Success.into());
+            }
+        }
     }
 
     check_setup(&matches);
@@ -58,7 +71,7 @@ fn main() -> Result<(), &'static str> {
 }
 
 fn check_setup(matches: &cli::Args) {
-    if !is_setup() || matches.setup {
+    if !is_setup() {
         if matches.no_interaction {
             err!("Cannot run setup without interaction");
             std::process::exit(ExitCode::SetupFailed.into());
