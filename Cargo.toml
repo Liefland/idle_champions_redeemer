@@ -7,12 +7,12 @@ license = "MIT OR Apache-2.0"
 authors = [
     "Zarthus <zarthus@liefland.net>",
 ]
-repository = "https://github.com/zarthus/idle_champions_redeemer"
-homepage = "https://github.com/zarthus/idle_champions_redeemer"
-categories = []
-keywords = []
+repository = "https://github.com/liefland/idle_champions_redeemer"
+homepage = "https://github.com/liefland/idle_champions_redeemer"
+categories = ["games"]
+keywords = ["idle_champions"]
 readme = "README.md"
-publish = false
+publish = true
 
 [dependencies]
 clap = { version = "4.4.18", features = ["derive"] }
@@ -27,5 +27,5 @@ arboard = { version = "3.3.0", default-features = false }
 [features]
 default = ["remote"]
 remote = ["licc", "tokio"] # permit remote code redemption
-wayland = ["arboard/wayland-data-control"]
+wayland = ["arboard/wayland-data-control"] # allows for improved clipboard support on wayland
 image = ["arboard/image-data"] # support copy/paste of images and restoring your clipboard if it has an image.

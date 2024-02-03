@@ -10,6 +10,9 @@ pub enum ConfigCommand {
 
     /// Run the setup
     Setup,
+
+    /// Swap strategies from local to remote or vice versa
+    ChangeStrategy,
 }
 
 #[derive(Debug, Parser, Clone)]

@@ -85,6 +85,23 @@ pub fn remove() -> Result<(), &'static str> {
     Ok(())
 }
 
+pub fn change_default_strategy() -> Result<(), &'static str> {
+    let mut config = read()?;
+
+    match config.default_strategy {
+        Strategy::Local => {
+            config.default_strategy = Strategy::Remote;
+            println!("Default Strategy changed to Remote");
+        }
+        Strategy::Remote => {
+            config.default_strategy = Strategy::Local;
+            println!("Default Strategy changed to Local");
+        }
+    }
+
+    write(&config)
+}
+
 fn backup() -> Result<(), std::io::Error> {
     let config_path = dir();
     let file_name = config_path.join(CONFIG_FILE_NAME);

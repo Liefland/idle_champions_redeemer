@@ -33,6 +33,16 @@ fn main() -> Result<(), &'static str> {
                 check_setup(&matches);
                 std::process::exit(ExitCode::Success.into());
             }
+            ConfigCommand::ChangeStrategy => match config::change_default_strategy() {
+                Ok(_) => {
+                    println!("Default Strategy changed successfully!");
+                    std::process::exit(ExitCode::Success.into());
+                }
+                Err(err) => {
+                    err!("Failed to change default strategy: {}", err);
+                    std::process::exit(ExitCode::ConfigFailed.into());
+                }
+            },
         }
     }
 
