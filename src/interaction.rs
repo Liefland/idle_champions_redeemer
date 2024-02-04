@@ -82,10 +82,14 @@ impl Interactor {
             if let Err(err) = self.redeem(&code) {
                 err!("Failed to redeem code '{}': {}", &code, err);
                 failed_codes.push(code.clone());
+                progress_sender.send("INC".to_string()).ok();
+                sleep_millis!(100, self.slow);
+                continue;
             };
 
-            sleep_millis!(2600, self.slow); // we need to wait for the chest animation to finish on success
             progress_sender.send("INC".to_string()).ok();
+            // we need to wait for the chest animation to finish on success
+            sleep_millis!(2600, self.slow);
         }
         progress_sender.send("FINISH".to_string()).ok();
 
