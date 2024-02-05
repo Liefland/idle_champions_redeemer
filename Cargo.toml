@@ -26,8 +26,9 @@ arboard = { version = "3.3.0", default-features = false }
 indicatif = { version = "0.17.7", optional = true }
 
 [features]
-default = ["remote", "progress"]
+default = ["remote", "progress", "cache"]
 remote = ["licc", "tokio"] # permit remote code redemption
+cache = [] # cache to file
 wayland = ["arboard/wayland-data-control"] # allows for improved clipboard support on wayland
 image = ["arboard/image-data"] # support copy/paste of images and restoring your clipboard if it has an image.
 progress = ["indicatif"] # displays a progress bar while redeeming

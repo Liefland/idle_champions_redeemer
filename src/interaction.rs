@@ -1,6 +1,7 @@
+use crate::cache::Cache;
 use crate::clipboard::ClipboardIsolation;
 use crate::config::Instructions;
-use crate::{err, progress, verbose};
+use crate::{cache, err, progress, verbose};
 use enigo::{KeyboardControllable, MouseControllable};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -64,10 +65,25 @@ impl Interactor {
         }
     }
 
-    pub fn redeem_many(&mut self, codes: Vec<String>) -> Result<(), Vec<String>> {
+    pub fn redeem_many(&mut self, mut codes: Vec<String>) -> Result<(), Vec<String>> {
         if codes.is_empty() {
             return Ok(());
         }
+
+        let cache_path = cache::path();
+        let mut cache = Cache::from_file(&cache_path).unwrap_or_else(|e| {
+            err!("Failed to read cache from file: {}", e);
+            Cache::new()
+        });
+
+        codes.retain(|code| {
+            if cache.contains(code) {
+                verbose!(self, "Skipping code '{}', already redeemed", code);
+                return false;
+            }
+
+            true
+        });
 
         let mut failed_codes: Vec<String> = vec![];
 
@@ -75,7 +91,17 @@ impl Interactor {
         let (mouse_x, mouse_y) = self.enigo.mouse_location();
 
         let len = codes.len();
+
+        if len == 0 {
+            println!("No (new) codes to redeem, all of them have already been cached.");
+            println!("If you want to redeem them again, clear the cache file (--bust-cache) and try again.");
+            return Ok(());
+        } else {
+            println!("Redeeming {} codes: {}", len, codes.join(", "));
+        }
+
         let (progress_sender, _thread_handle) = progress::bar_create(len);
+
         for code in codes {
             progress_sender.send(format!("CODE {}", code)).ok();
 
@@ -88,6 +114,7 @@ impl Interactor {
             };
 
             progress_sender.send("INC".to_string()).ok();
+            cache.push(code);
             // we need to wait for the chest animation to finish on success
             sleep_millis!(2600, self.slow);
         }
@@ -99,6 +126,15 @@ impl Interactor {
 
         // Reset mouse position
         self.enigo.mouse_move_to(mouse_x, mouse_y);
+        #[cfg(feature = "cache")]
+        match cache.write(&cache_path) {
+            Ok(_) => {
+                verbose!(self, "Cache written to file");
+            }
+            Err(e) => {
+                err!("Failed to write cache to file: {}", e);
+            }
+        };
 
         Ok(())
     }

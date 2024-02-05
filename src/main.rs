@@ -3,6 +3,7 @@ use crate::cli::ConfigCommand;
 use crate::interaction::await_enter;
 use crate::setup::{is_setup, setup};
 mod app;
+mod cache;
 mod cli;
 mod clipboard;
 mod config;
@@ -57,6 +58,28 @@ fn main() -> Result<(), &'static str> {
             std::process::exit(ExitCode::ConfigFailed.into());
         }
     };
+
+    #[cfg(feature = "cache")]
+    if matches.bust_cache {
+        verbose!(matches, "Busting cache..");
+
+        let path = cache::path();
+        let mut cache = cache::Cache::from_file(&path).unwrap_or_else(|e| {
+            err!("Failed to read cache from file: {}", e);
+            std::process::exit(ExitCode::CleanFailed.into());
+        });
+
+        cache
+            .bust()
+            .write(&path)
+            .map_err(|e| {
+                err!("Failed to write cache to file: {}", e);
+                std::process::exit(ExitCode::CleanFailed.into());
+            })
+            .unwrap();
+
+        println!("Cache busted successfully!");
+    }
 
     if matches.codes.is_empty()
         && matches.url.is_none()

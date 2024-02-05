@@ -29,6 +29,11 @@ pub struct Args {
     #[cfg(feature = "remote")]
     pub prefer_remote: bool,
 
+    /// Clears the redeemed code cache
+    #[clap(long)]
+    #[cfg(feature = "cache")]
+    pub bust_cache: bool,
+
     /// Unused
     #[cfg(not(feature = "remote"))]
     #[clap(hide = true)]
