@@ -32,7 +32,7 @@ pub struct Instructions {
     pub unlock_chest: Coordinates,
 }
 
-const CONFIG_FILE_NAME: &str = "config.toml";
+const CONFIG_FILE_NAME: &str = "config.json";
 
 pub fn dir() -> PathBuf {
     ProjectDirs::from("net", "liefland", "idle-champions-redeemer")
@@ -51,15 +51,15 @@ pub fn read() -> Result<ConfigFile, &'static str> {
         return Err("Config file does not exist");
     }
 
-    let tml = std::fs::read_to_string(path).map_err(|_| "Failed to read config file")?;
+    let jsn = std::fs::read_to_string(path).map_err(|_| "Failed to read config file")?;
 
-    toml::from_str(&tml).map_err(|_| "Failed to parse config file")
+    serde_json::from_str(&jsn).map_err(|_| "Failed to parse config file")
 }
 
 pub fn write(config: &ConfigFile) -> Result<(), &'static str> {
     let path = file();
 
-    let tml = toml::to_string(&config).map_err(|_| "Failed to serialize config file")?;
+    let jsn = serde_json::to_string(&config).map_err(|_| "Failed to serialize config file")?;
 
     match backup() {
         Ok(_) => {}
@@ -68,7 +68,7 @@ pub fn write(config: &ConfigFile) -> Result<(), &'static str> {
         }
     }
 
-    std::fs::write(path, tml).map_err(|_| "Failed to write config file")?;
+    std::fs::write(path, jsn).map_err(|_| "Failed to write config file")?;
 
     Ok(())
 }
