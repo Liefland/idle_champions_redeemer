@@ -22,7 +22,7 @@ Without connecting to the remote API (no `tokio` or `reqwest` dependencies):
 
 You can the run it like so: 
 - `icredeem setup` to generate a config file.
-- `icredeem` use the default strategy based on the config, this will defalut to getting redeemable codes from the API
+- `icredeem` use the default strategy based on the config, this will default to getting redeemable codes from the API
 - `icredeem --codes="NEWA-CCOU-NTNE-WME!"` to redeem a code.
 - `icredeem --prefer-remote` if the configured strategy is local, this will use the remote strategy for this call.
 
