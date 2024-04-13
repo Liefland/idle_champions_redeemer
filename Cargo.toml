@@ -26,7 +26,7 @@ arboard = { version = "3.3.0", default-features = false }
 indicatif = { version = "0.17.8", optional = true }
 
 [features]
-default = ["remote", "progress", "cache"]
+default = ["remote", "progress", "cache", "image"]
 remote = ["licc", "tokio"] # permit remote code redemption
 cache = [] # cache to file
 wayland = ["arboard/wayland-data-control"] # allows for improved clipboard support on wayland
