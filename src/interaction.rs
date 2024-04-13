@@ -165,7 +165,13 @@ impl Interactor {
         verbose!(self, "Checking for 'card', two branches possible [A], [B]");
         // Delays here are a bit finnicky.
         // A1's delay is propogated in B1, as we can handle both branches in the same time frame
-        key!(self, "[A] Flip card", enigo::Key::Space, 10); // A1
+        // It's possible there's more than one card to flip, in which case we need to hit space multiple times
+        key!(self, "[A] Flip card (1/6?)", enigo::Key::Space, 10); // A1
+        key!(self, "[A] Flip card (2/6?)", enigo::Key::Space, 10); // A1
+        key!(self, "[A] Flip card (3/6?)", enigo::Key::Space, 10); // A1
+        key!(self, "[A] Flip card (4/6?)", enigo::Key::Space, 10); // A1
+        key!(self, "[A] Flip card (5/6?)", enigo::Key::Space, 10); // A1
+        key!(self, "[A] Flip card (6/6?)", enigo::Key::Space, 10); // A1
         key!(self, "[B] Dismiss error", enigo::Key::Escape, 1000); // B1
         key!(self, "[B] Closing the chest UI", enigo::Key::Escape, 3000); // A2
         key!(self, "[A] Acknowledging card", enigo::Key::Space, 500); // B2
