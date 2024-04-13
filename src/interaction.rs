@@ -166,7 +166,7 @@ impl Interactor {
         // Delays here are a bit finnicky.
         // A1's delay is propogated in B1, as we can handle both branches in the same time frame
         // It's possible there's more than one card to flip, in which case we need to hit space multiple times
-        key!(self, "[A] Flip card (1/6?)", enigo::Key::Space, 10); // A1
+        key!(self, "[A] Flip card (1/6)", enigo::Key::Space, 10); // A1
         key!(self, "[A] Flip card (2/6?)", enigo::Key::Space, 10); // A1
         key!(self, "[A] Flip card (3/6?)", enigo::Key::Space, 10); // A1
         key!(self, "[A] Flip card (4/6?)", enigo::Key::Space, 10); // A1

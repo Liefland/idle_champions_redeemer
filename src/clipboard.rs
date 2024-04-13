@@ -31,7 +31,15 @@ impl ClipboardIsolation {
         Ok(isolation)
     }
 
-    pub fn end(&mut self) -> Result<(), &'static str> {
+    fn start(&mut self) -> Result<(), &'static str> {
+        verbose!(self, "==> Isolating clipboard");
+
+        self.previous_clipboard = Some(self.read_clipboard()?);
+
+        Ok(())
+    }
+
+    fn end(&mut self) -> Result<(), &'static str> {
         verbose!(self, "==> Resetting clipboard");
 
         let prev = self.previous_clipboard.clone();
@@ -43,14 +51,6 @@ impl ClipboardIsolation {
                 Ok(()) // No previous clipboard to restore
             }
         }
-    }
-
-    fn start(&mut self) -> Result<(), &'static str> {
-        verbose!(self, "==> Isolating clipboard");
-
-        self.previous_clipboard = Some(self.read_clipboard()?);
-
-        Ok(())
     }
 
     fn write_clipboard(&mut self, contents: &str, show: bool) -> Result<(), &'static str> {
