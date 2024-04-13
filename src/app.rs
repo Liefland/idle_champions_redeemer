@@ -47,7 +47,7 @@ fn run_local(instructions: LocalInstructions) -> Result<(), &'static str> {
         instructions.settings.instructions,
         instructions.settings.slow,
         instructions.settings.verbose,
-    );
+    )?;
 
     match interactor.redeem_many(instructions.codes) {
         Ok(_) => Ok(()),
@@ -82,7 +82,7 @@ async fn run_remote(instructions: RemoteInstructions) -> Result<(), &'static str
         instructions.settings.instructions,
         instructions.settings.slow,
         instructions.settings.verbose,
-    );
+    )?;
 
     match interactor.redeem_many(codes) {
         Ok(_) => Ok(()),

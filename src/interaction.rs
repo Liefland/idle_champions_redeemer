@@ -2,7 +2,7 @@ use crate::cache::Cache;
 use crate::clipboard::ClipboardIsolation;
 use crate::config::Instructions;
 use crate::{cache, err, progress, verbose};
-use enigo::{KeyboardControllable, MouseControllable};
+use enigo::{Keyboard, Mouse};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::io::stdin;
@@ -45,24 +45,47 @@ macro_rules! action {
 
 macro_rules! key {
     ($self:ident, $action:expr, $key:expr, $sleep:expr) => {
-        action!($self, $action, $self.send_keypress($key), $sleep);
+        action!(
+            $self,
+            $action,
+            $self.send_keyclick($key).map_err(|e| {
+                err!("Failed to send keypress: {}", e);
+                "Failed to send keypress"
+            })?,
+            $sleep
+        );
     };
 }
 
 macro_rules! click {
     ($self:ident, $action:expr, $coords:expr, $sleep:expr) => {
-        action!($self, $action, $self.send_click($coords), $sleep);
+        action!(
+            $self,
+            $action,
+            $self.send_click($coords).map_err(|e| {
+                err!("Failed to send click: {}", e);
+                "Failed to send click"
+            })?,
+            $sleep
+        );
     };
 }
 
 impl Interactor {
-    pub fn new(instructions: Instructions, slow: bool, verbose: bool) -> Interactor {
-        Interactor {
-            enigo: enigo::Enigo::new(),
+    pub fn new(
+        instructions: Instructions,
+        slow: bool,
+        verbose: bool,
+    ) -> Result<Interactor, &'static str> {
+        Ok(Interactor {
+            enigo: enigo::Enigo::new(&enigo::Settings::default()).map_err(|e| {
+                err!("Failed to initialize enigo: {}", e);
+                "Failed to initialize enigo"
+            })?,
             instructions,
             verbose,
             slow,
-        }
+        })
     }
 
     pub fn redeem_many(&mut self, mut codes: Vec<String>) -> Result<(), Vec<String>> {
@@ -85,10 +108,13 @@ impl Interactor {
             true
         });
 
-        let mut failed_codes: Vec<String> = vec![];
-
         // Store mouse position
-        let (mouse_x, mouse_y) = self.enigo.mouse_location();
+        let (mouse_x, mouse_y) = self.enigo.location().map_err(|e| {
+            err!("Failed to get mouse position: {}", e);
+            vec![format!("Failed to get mouse position: {}", e)]
+        })?;
+
+        let mut failed_codes: Vec<String> = vec![];
 
         let len = codes.len();
 
@@ -125,7 +151,12 @@ impl Interactor {
         }
 
         // Reset mouse position
-        self.enigo.mouse_move_to(mouse_x, mouse_y);
+        self.enigo
+            .move_mouse(mouse_x, mouse_y, enigo::Coordinate::Abs)
+            .map_err(|e| {
+                err!("Failed to move mouse: {}", e);
+                vec![format!("Failed to move mouse: {}", e)]
+            })?;
         #[cfg(feature = "cache")]
         match cache.write(&cache_path) {
             Ok(_) => {
@@ -155,7 +186,7 @@ impl Interactor {
             &instructions.unlock_chest,
             2500
         );
-        action!(self, "Pasting the code", self.paste_clipboard(), 1500);
+        action!(self, "Pasting the code", self.paste_clipboard()?, 1500);
 
         // this animation takes forever if successful
         // which is the whole reason i wrote this software in the first place
@@ -198,31 +229,67 @@ impl Interactor {
         Ok(())
     }
 
-    pub fn send_click(&mut self, coords: &Coordinates) {
+    pub fn send_click(&mut self, coords: &Coordinates) -> Result<(), &'static str> {
         verbose!(self, "==> Sending CLICK at X:{}, Y:{}", coords.x, coords.y);
 
-        self.enigo.mouse_move_to(coords.x, coords.y);
+        self.enigo
+            .move_mouse(coords.x, coords.y, enigo::Coordinate::Abs)
+            .map_err(|e| {
+                err!("Failed to move mouse: {}", e);
+                "Failed to move mouse"
+            })?;
 
         sleep_millis!(10, false); // Probably not needed
 
-        self.enigo.mouse_click(enigo::MouseButton::Left);
+        self.enigo
+            .button(enigo::Button::Left, enigo::Direction::Click)
+            .map_err(|e| {
+                err!("Failed to click mouse: {}", e);
+                "Failed to click mouse"
+            })?;
+
+        Ok(())
     }
 
-    fn send_keypress(&mut self, key_press: enigo::Key) {
+    fn send_keyclick(&mut self, key_press: enigo::Key) -> Result<(), &'static str> {
         verbose!(self, "==> Sending KEY '{:?}'", key_press);
 
-        self.enigo.key_click(key_press);
+        self.enigo
+            .key(key_press, enigo::Direction::Click)
+            .map_err(|e| {
+                err!("Failed to press key: {}", e);
+                "Failed to press key"
+            })?;
+
+        Ok(())
     }
 
-    fn paste_clipboard(&mut self) {
+    fn paste_clipboard(&mut self) -> Result<(), &'static str> {
         verbose!(self, "==> Pasting clipboard");
 
         verbose!(self, "==> Sending KEY '{:?}'", enigo::Key::Control);
-        self.enigo.key_down(enigo::Key::Control);
+        self.enigo
+            .key(enigo::Key::Control, enigo::Direction::Press)
+            .map_err(|e| {
+                err!("Failed to press key: {}", e);
+                "Failed to press key"
+            })?;
+
         sleep_millis!(25, self.slow);
-        self.send_keypress(enigo::Key::Layout('v'));
+        self.send_keyclick(enigo::Key::Unicode('v')).map_err(|e| {
+            err!("Failed to press key: {}", e);
+            "Failed to press key"
+        })?;
+
         sleep_millis!(25, self.slow);
-        self.enigo.key_up(enigo::Key::Control);
+        self.enigo
+            .key(enigo::Key::Control, enigo::Direction::Release)
+            .map_err(|e| {
+                err!("Failed to release key: {}", e);
+                "Failed to release key"
+            })?;
+
+        Ok(())
     }
 }
 

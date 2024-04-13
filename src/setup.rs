@@ -2,7 +2,7 @@ use crate::config::Strategy::Remote;
 use crate::config::{dir, file, write, ConfigFile, Instructions};
 use crate::err;
 use crate::interaction::{await_enter, Coordinates, Interactor};
-use enigo::MouseControllable;
+use enigo::Mouse;
 use std::fmt::Display;
 use std::fs::create_dir_all;
 
@@ -17,7 +17,10 @@ pub fn setup() -> Result<(), &'static str> {
         create_dir_all(&path).map_err(|_| "Failed to create config directory")?;
     }
 
-    let enigo = enigo::Enigo::new();
+    let enigo = enigo::Enigo::new(&enigo::Settings::default()).map_err(|e| {
+        err!("Failed to initialize enigo: {}", e);
+        "Failed to initialize enigo"
+    })?;
 
     println!("Welcome to the setup!");
     println!("Please note, you will have to rerun the setup if you have changed the mouse coordinates (for instance, if you drag the Idle Champions window to a different location).");
@@ -58,12 +61,15 @@ pub fn setup() -> Result<(), &'static str> {
 fn demo(instructions: &Instructions) -> Result<(), String> {
     println!("We will now test a full cycle of the program.");
     println!("This will open the chest UI, unlock a chest, and close the UI. Please avoid using the mouse and keyboard.");
-    let mut interactor = Interactor::new(*instructions, false, true);
+    let mut interactor = Interactor::new(*instructions, false, true).map_err(|e| e.to_string())?;
     interactor.redeem("DEMO-REDE-EMER-IDLE")
 }
 
 fn get_cursor_position(enigo: &enigo::Enigo) -> Result<Coordinates, &'static str> {
-    let (x, y) = enigo.mouse_location();
+    let (x, y) = enigo.location().map_err(|e| {
+        err!("Failed to get mouse inputs: {}", e);
+        "Failed to get mouse inputs"
+    })?;
 
     Ok(Coordinates { x, y })
 }
